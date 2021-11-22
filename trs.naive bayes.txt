@@ -1,0 +1,20 @@
+
+# Naive Bayes 
+
+library(e1071)
+library(caret)
+
+Client_nb<-naiveBayes( y ~ job +age + campaign + previous + month + pdays + poutcome + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data= training_set)
+Client_nb
+
+#predict
+pre <- predict(Client_nb, test_set, type = "raw") %>%
+  as.data.frame() %>%
+  mutate(prediction = if_else(0 < 1, 0, 1)) %>%
+  pull(prediction)
+
+# Confusion Matrix
+
+bayes_table <- table(pre, test_set$y)
+accuracy_test_bayes <- sum(diag(bayes_table)) / sum(bayes_table)
+list('predict matrix' = bayes_table, 'accuracy' = accuracy_test_bayes) #88.9 Acc

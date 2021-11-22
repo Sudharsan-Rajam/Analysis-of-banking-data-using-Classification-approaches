@@ -1,0 +1,78 @@
+#Clear Memory
+rm(list=ls())
+df<-bank_additional_full
+#Loading the original data set
+df <- read.csv("bank-additional-full.csv",header=TRUE,sep=";")
+
+#Removing specified attributes
+df <- subset(df, select = -c(day_of_week,marital,default,housing,loan,contact))
+
+#Removing rows with unknowns
+library(dplyr)
+df <- df %>% filter(job != "unknown")
+df <- df %>% filter(education != "unknown")
+
+
+#Converting quantititative values to numeric class
+
+df$age <- as.numeric(df$age)
+df$campaign <- as.numeric(df$campaign)
+df$duration <- as.numeric(df$duration)
+df$pdays <- as.numeric(df$pdays)
+df$previous <- as.numeric(df$previous)
+df$emp.var.rate <- as.numeric(df$emp.var.rate)
+df$cons.price.idx <- as.numeric(df$cons.price.idx)
+df$cons.conf.idx <- as.numeric(df$cons.conf.idx)
+df$nr.employed <- as.numeric(df$nr.employed)
+df$y <-as.factor(df$y)
+
+#checking classes of attributes after transformation
+sapply(df,class)
+
+#Makin Dummy for Pdays
+
+df = df %>% 
+  mutate(pdays_dummy = if_else(pdays == 999, "0", "1")) %>% 
+  select(-pdays)
+
+#Setting the desired seed
+#Randomizing the dataframe
+set.seed(120)
+rows <- sample(nrow(df))
+df <- df[rows, ]
+
+#Importing 'dplyr' library
+#Re-sampling the dataframe to 10k rows
+set.seed(120)
+library(dplyr)
+df <- sample_n(df, 10000)
+
+# Splitting the dataset into the Training set and Test set
+# install.packages('caTools')
+library(caTools)
+set.seed(120)
+split <- sample.split(df$y, SplitRatio = 0.80)
+training_set <- subset(df, split == TRUE)
+test_set <- subset(df, split == FALSE)
+
+# c 5
+
+library(C50)
+df.c50 <- C5.0(y ~ . , training_set , trials=15)
+df.c50.pred<-predict(df.c50,test_set,type="class" )
+df.c50.prob<-predict(df.c50,test_set,type="prob" )
+# Confusion matrix
+confusionMatrix(df.c50.pred, test_set$y)
+
+# Cross table validation for C5
+library(gmodels)
+CrossTable(test_set$y, df.c50.pred,prop.chisq = FALSE,prop.c = FALSE, prop.r = FALSE)
+dnn = c('actual default', 'predicted default')
+
+#Information Gain for the attributes 
+
+varImp(df.c50)
+
+library(FSelector)
+IG.FSelector <- information.gain(y ~ ., data=df)
+IG.FSelector
